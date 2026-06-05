@@ -529,11 +529,15 @@ end
 
 @testset "README doctests" begin
     using Documenter
+    using Logging: ConsoleLogger, with_logger, Error
     DocMeta.setdocmeta!(EmulatedBitIntegers, :DocTestSetup, :(using EmulatedBitIntegers); recursive=true)
     # `Documenter.doctest` expects a source directory, so stage the README into a tmpdir as `index.md`.
     mktempdir() do dir
         cp(joinpath(pkgdir(EmulatedBitIntegers), "README.md"), joinpath(dir, "index.md"))
-        Documenter.doctest(dir, [EmulatedBitIntegers])
+        # Drop Documenter's pipeline `@info` chatter and the `edit_link` `@warn` (it shells out to `git remote` in the staged tmpdir which isn't a repo). Doctest failures surface through the active testset, not the logger.
+        with_logger(ConsoleLogger(stderr, Error)) do
+            Documenter.doctest(dir, [EmulatedBitIntegers])
+        end
     end
 end
 
