@@ -1,0 +1,9 @@
+name = "PrecompileTest"
+uuid = "e6c8e1e0-1a2b-4c3d-9e5f-6a7b8c9d0e1f"
+version = "0.0.0"
+
+[deps]
+EmulatedBitIntegers = "344cc1fc-1294-4796-b5db-6b4bd1573fb6"
+
+[sources]
+EmulatedBitIntegers = {path = "../.."}

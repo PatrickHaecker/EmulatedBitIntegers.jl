@@ -1,0 +1,14 @@
+name = "EmulatedBitIntegers"
+uuid = "344cc1fc-1294-4796-b5db-6b4bd1573fb6"
+version = "0.4.0"
+authors = ["Patrick Häcker <patrick.haecker@de.bosch.com>"]
+
+[deps]
+Random = "9a3f8284-a2c9-5f02-9a11-845980a1fd5c"
+
+[workspace]
+projects = ["test"]
+
+[compat]
+Random = "1"
+julia = "1.10"
