@@ -24,6 +24,7 @@
         "ispowerof",
         "issigned",
         "jldoctest",
+        "llvmcall",
         "lookback",
         "macrocall",
         "makedocs",
@@ -59,9 +60,11 @@
     "cSpell.words": [
         "Bestie",
         "branchlessly",
+        "Gaure",
         "Häcker",
         "inlines",
         "signedness",
         "signednesses",
+        "Simen",
     ]
 }
