@@ -1,0 +1,12 @@
+# Changes here will be overwritten by Copier
+Authors: Patrick Häcker <patrick.haecker@de.bosch.com>
+JuliaMinVersion: '1.10'
+License: MIT
+LicenseCopyrightHolders: Patrick Häcker
+PackageName: EmulatedBitIntegers
+PackageOwner: PatrickHaecker
+PackageUUID: 344cc1fc-1294-4796-b5db-6b4bd1573fb6
+StrategyConfirmIncluded: false
+StrategyLevel: 1
+StrategyReviewExcluded: false
+_src_path: /home/hp74lr/.julia/packages/BestieTemplate/6QVd6
