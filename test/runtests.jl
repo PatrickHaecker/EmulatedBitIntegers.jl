@@ -369,6 +369,7 @@ end
     @test Int3(-2) >>> 1 === Int3(3)   # 0b110 → 0b011
     # Disambiguation: `prevpow` internally does `T << ::UInt`.
     @test UInt3(1) << UInt(2) === UInt3(4)
+    @test Int3(1) << UInt(2) === Int3(-4)
     @test prevpow(2, UInt3(5)) === UInt3(4)
 end
 

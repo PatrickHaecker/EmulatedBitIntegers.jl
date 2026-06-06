@@ -88,9 +88,4 @@ function emulate!(exprs::Vector{Any}, T::Symbol, t::IntegerType)
     # Per-type traits feeding the abstract-typed methods in `methods.jl`. Each is a single-method constant-returning function so the call sites fold to a literal at inference time. The methods are added to functions owned by `EmulatedBitIntegers`, so the macro-expansion site (the caller's module) reaches them via the fully-qualified module path; function-name interpolation does not work in macros [discussion](https://discourse.julialang.org/t/adding-method-to-function-in-macro/128613/5). All other trait values (`wastedbits`, `maxvalue`, `minvalue`, `hexdigits`) are derived from these two in `methods.jl`.
     @push! $EmulatedBitIntegers.bits(::Type{<:$T}) = $(t.logical_bits)
     @push! $EmulatedBitIntegers.storagetypeof(::Type{$T}) = $(t.storage_type)
-
-    # `<<(::T,::Integer)` is installed per type by `@emulate`: a generic method on `EmulatedInteger` is ambiguous with Base's `<<(::Unsigned, ::Int)` / `(::Integer, ::Int)` / `(::Integer, ::Unsigned)` specializations.
-    @push! Base.:<<(x::$T, c::Integer)  = (x[] << c) % $T
-    @push! Base.:<<(x::$T, c::Int)      = (x[] << c) % $T
-    @push! Base.:<<(x::$T, c::Unsigned) = (x[] << c) % $T
 end
