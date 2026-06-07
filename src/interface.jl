@@ -53,5 +53,6 @@ multi-field structs, structs with non-bits fields) throw an `ArgumentError`.
     isstructtype(x) && fieldcount(x) == 1 && return fieldtype(x, 1) |> storagetypeof
     lazy"$x does not have a storage type" |> ArgumentError |> throw
 end
+storagetypeof(::Type{<:EmulatedInteger{S}}) where S = S
 # Fallback for `UnionAll`, `Union`, and other non-`DataType` `Type` values. Without this, `fieldtype` on those would silently produce a `TypeVar` or `Any` and the recursion would yield garbage.
 storagetypeof(x::Type) = lazy"$x does not have a storage type" |> ArgumentError |> throw

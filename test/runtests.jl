@@ -48,11 +48,13 @@ end
 end
 
 @testset "rejected macro inputs" begin
+    # Zero-bit integers fail the `1 <= logical_bits < storage_bits` check in `IntegerType`.
     @test_throws ArgumentError @macroexpand @emulate Int0
     @test_throws ArgumentError @macroexpand @emulate UInt0
-    @test_throws ArgumentError @macroexpand @emulate UInt-1
-    @test_throws ArgumentError @macroexpand @emulate 42
-    # Malformed width suffix: `@eval` surfaces the inner `AssertionError` as a `LoadError`.
+    # Non-`Symbol` arguments are rejected by the macro's `Ts::Symbol...` signature: `UInt-1` parses as a subtraction `Expr`, `42` is an `Int`.
+    @test_throws MethodError @macroexpand @emulate UInt-1
+    @test_throws MethodError @macroexpand @emulate 42
+    # Malformed width suffix fails the name regex in `IntegerType`; `@eval` throws a `LoadError` when the macro-expansion has an `ArgumentError`.
     @test_throws LoadError @eval(@emulate(Int6_abd))
 end
 
