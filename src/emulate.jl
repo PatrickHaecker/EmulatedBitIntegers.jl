@@ -63,9 +63,6 @@ function emulate(T::Symbol, t::IntegerType)
     # `Core.throw_inexacterror` is the `@noinline` helper Base's integer constructors use; it keeps the cold error branch out of line so this hot constructor inlines down to a compare + reinterpret.
     @push! Core.@doc $doc_T $T(x::$(t.storage_type)) = $inrange ? reinterpret($T, x) : Core.throw_inexacterror(:trunc, $T, x)
 
-    T_unsafe = Symbol(T, :Unsafe)
-    @push! $T_unsafe(x::Integer) = reinterpret($T, convert($(t.storage_type), x))
-
     # Create the type with different signedness, but identical prefix and size, compared to the original type. This will only be done, if the other type is defined, too, and then the conversion methods for both directions are defined. In this sense we delay the definition of the conversion methods until the other type is defined.
     T_dual = t |> signdual |> Symbol
     T_signed, T_unsigned = t.signed ? (T, T_dual) : (T_dual, T)
