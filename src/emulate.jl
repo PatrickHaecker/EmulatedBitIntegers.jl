@@ -1,38 +1,40 @@
 # The `@emulate` macro and the per-type method definitions it expands to. Each `@emulate T` user call evaluates the expressions assembled here in the caller's module, defining a primitive type plus the methods that need to dispatch on the concrete `T` (because of ambiguity with Base specializations, unrolled arity, or trait installation). Abstract-typed methods that serve every emulated type live in `methods.jl`.
 
-macro emulate(Ts...)
-    return emulate(Ts, __module__)
-end
-
-function emulate(Ts, m)
+macro emulate(Ts::Symbol...)
+    # `Ts` is a `Vararg` and therefore hard to precompile when received by a method. We deliberately do the extraction of single elements here in the macro, as then the caller can constant-propagate the `Symbol`s and the calling method can be precompiled.
     block = Expr(:block)
     to_be_defined = Symbol[]
-    for T in Ts
-        T isa Symbol || lazy"`@emulate` expects type name symbols like `UInt3` or `Int7_16`, got `$T`." |> ArgumentError |> throw
-        # Do not redefine the type if it already exists or is already prepared to be defined to keep things simple in the following and save some time for repeated calls.
-        (isdefined(m, T) || T ∈ to_be_defined) && continue
-
-        t = IntegerType(T, m)
-
-        # Do not define a type like UInt7_8. Instead define a type UInt7 if not already done and define the new name UInt7_8 for the already defined type UInt7.
-        if t.redundant_storage_request
-            T_canonical = t |> Symbol
-
-            if !(isdefined(m, T_canonical) || T_canonical ∈ to_be_defined)
-                push!(to_be_defined, T_canonical)
-                emulate!(block.args, T_canonical, IntegerType(T_canonical, m))
-            end
-            push!(to_be_defined, T)
-            # This needs to be in global (toplevel) scope for `const` being allowed.
-            push!(block.args, Expr(:toplevel, :(const $T = $T_canonical)))
-        else
-            push!(to_be_defined, T)
-            emulate!(block.args, T, t)
-        end
+    for i in 1:length(Ts)
+        emulate!(block, to_be_defined, Ts[i], __module__)
     end
     # The evaluation of the macro should not print anything.
     push!(block.args, nothing)
     return block |> esc
+end
+
+# Use an `AbstractVector` instead of an `NTuple` to avoid recompilation for each arity of `@emulate` (e.g. `@emulate Int2` vs. `@emulate Int2 Int3`).
+function emulate!(block::Expr, to_be_defined::Vector{Symbol}, T::Symbol, m::Module)
+
+    # Do not redefine the type if it already exists or is already prepared to be defined to keep things simple in the following and save some time for repeated calls.
+    (isdefined(m, T) || T ∈ to_be_defined) && return
+
+    t = IntegerType(T, m)
+
+    # Do not define a type like UInt7_8. Instead define a type UInt7 if not already done and define the new name UInt7_8 for the already defined type UInt7.
+    if t.redundant_storage_request
+        T_canonical = t |> Symbol
+
+        if !(isdefined(m, T_canonical) || T_canonical ∈ to_be_defined)
+            push!(to_be_defined, T_canonical)
+            emulate!(block.args, T_canonical, IntegerType(T_canonical, m))
+        end
+        push!(to_be_defined, T)
+        # This needs to be in global (toplevel) scope for `const` being allowed.
+        push!(block.args, Expr(:toplevel, :(const $T = $T_canonical)))
+    else
+        push!(to_be_defined, T)
+        emulate!(block.args, T, t)
+    end
 end
 
 # `@push! ex` expands to `push!(exprs, quote ex end)` in the caller scope: the call is escaped so it binds to the caller's local `exprs::Vector{Any}`, and the inner `:quote` (rather than a `QuoteNode`) preserves `$T` etc. so interpolations resolve at `emulate!` runtime, not at macro-expansion time.
