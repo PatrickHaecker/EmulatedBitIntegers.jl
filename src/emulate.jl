@@ -9,7 +9,8 @@ macro emulate(Ts::Symbol...)
     end
     # The evaluation of the macro should not print anything.
     push!(block.args, nothing)
-    return block |> esc
+    # Do not use a pipe as it would not be precompiled due to being a macro.
+    return esc(block)
 end
 
 # Use an `AbstractVector` instead of an `NTuple` to avoid recompilation for each arity of `@emulate` (e.g. `@emulate Int2` vs. `@emulate Int2 Int3`).
