@@ -7,13 +7,6 @@ Base.getindex(x::EmulatedInteger) = reinterpret(x |> typeof |> storagetypeof, x)
 Base.widen(x::EmulatedInteger) = x[]
 Base.widen(::Type{T}) where T<:EmulatedInteger = storagetypeof(T)
 
-# Fallback constructor for any `Real`: route through `convert(storage, x)` (which throws `InexactError` for non-integer-valued floats/rationals or out-of-range integers), then funnel through the per-type checked `T(::storage_type)` constructor for the final range check. This single method also powers `convert(T, x)`, `round(T, x)`, `floor`/`ceil`/`trunc(T, x)` for any `Real x` — all of which funnel through `T(x)` in Base.
-(::Type{T})(x::Real) where T<:EmulatedInteger = convert(storagetypeof(T), x) |> T
-# Disambiguate against Base's `T(::BigFloat) where T<:Integer` and `T(::Rational) where T<:Integer`. Both bodies are the same forwarder as above.
-for S in (BigFloat, Rational)
-    @eval (::Type{T})(x::$S) where T<:EmulatedInteger = convert(storagetypeof(T), x) |> T
-end
-
 # `Base.tryparse_internal(::Type{T<:Integer}, ...)` accumulates digits in `T` itself, requiring `T(base)` to be representable. For narrow emulated types (e.g. `UInt3`, max 7) `T(10)` throws `InexactError` and parsing of any decimal string fails. Route through the storage type which always fits `base`, then range-check into `T`. `parse` reuses `T(::Real)`'s checked conversion (throws `InexactError` on overflow); `tryparse` does an explicit range check and returns `nothing` to honor its no-throw contract.
 Base.parse(::Type{T}, s::AbstractString; base::Union{Integer,Nothing}=nothing) where T<:EmulatedInteger =
     convert(T, parse(storagetypeof(T), s; base))

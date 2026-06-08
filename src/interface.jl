@@ -1,3 +1,13 @@
+# A type-specific docstring is added in `@emulate` in order for `help?>` to find the constructor.
+function (::Type{T})(x::Real) where {S, T<:EmulatedInteger{S}}
+    _x = convert(storagetypeof(T), x)
+    inrange(T, _x) ? reinterpret(T, _x) : Core.throw_inexacterror(:trunc, T, _x)
+end
+# Due to [unintuitive method resolution in Julia](https://github.com/JuliaLang/julia/issues/24723), the above constructor is ambiguous with Base's `T(::Rational) where T<:Integer` (rational.jl) and `T(::BigFloat) where T<:Integer` (mpfr.jl). So tell Julia which constructor to choose by defining more specific constructors and forwarding them to the one defined above.
+for X in (Rational, BigFloat)
+    @eval (::Type{T})(x::$X) where {S, T<:EmulatedInteger{S}} = invoke(T, Tuple{Real}, x)
+end
+
 """
     bits(T::Type) -> Int
     bits(x) -> Int

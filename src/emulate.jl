@@ -51,16 +51,15 @@ function emulate(T::Symbol, t::IntegerType)
     #This is also the reason for UInt7 to be always 8 bits internally and using the underscore-suffix syntax like UInt7_16 to be 16 bits internally.
     @push! primitive type $T <: $parent{$(t.storage_type)} $(t.storage_bits) end
 
-    # Bake the docstring into a `Core.@doc` macrocall in the pushed expression.
+    # Per-type docstring attached to the type binding so `?$T` resolves. The constructor itself is the generic `(::Type{T})(x::Real) where T<:EmulatedInteger`; `Core.@doc` on the bare symbol documents the binding rather than a method, which is what `@doc $T` looks up.
     doc_T = """
-        $T(x)
+        $T(x::Real)
 
-    Construct an object of type `$T`.
+    Construct an emulated integer of type `$T` from `x`.
 
-    Throws an `InexactError` for out-of-range values, like other Julia integer constructors.
+    Throws an `InexactError` for out-of-range values, matching the contract of Julia's primitive integer constructors.
     """
-    # `Core.throw_inexacterror` is the `@noinline` helper Base's integer constructors use; it keeps the cold error branch out of line so this hot constructor inlines down to a compare + reinterpret.
-    @push! Core.@doc $doc_T $T(x::$(t.storage_type)) = $EmulatedBitIntegers.inrange($T, x) ? reinterpret($T, x) : Core.throw_inexacterror(:trunc, $T, x)
+    @push! Core.@doc $doc_T $T
 
     # Create the type with different signedness, but identical prefix and size, compared to the original type. This will only be done, if the other type is defined, too, and then the conversion methods for both directions are defined. In this sense we delay the definition of the conversion methods until the other type is defined.
     T_dual = t |> signdual |> Symbol

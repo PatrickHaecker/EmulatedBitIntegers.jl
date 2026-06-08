@@ -69,8 +69,8 @@ end
 
 @testset "constructor docstrings" begin
     @emulate UInt9 Int9
-    # The macro-generated `T(x)` constructor must carry the docstring produced by `emulate!`; if the docstring landed on the wrong expression (e.g. on a plain assignment), `@doc` would return the fallback "No documentation found" instead.
-    @test occursin("Construct an object of type `UInt9`", string(@doc UInt9))
+    # The macro attaches a per-type docstring to the type binding so `help?> UInt9` resolves. Missing attachment would return the fallback "No documentation found".
+    @test occursin("Construct an emulated integer of type `UInt9`", string(@doc UInt9))
     @test occursin("InexactError", string(@doc UInt9))
 end
 
