@@ -189,3 +189,7 @@ cleaning, a two-type "dirty" variant).
 - [Simen Gaure added a pull request to `BitIntegers.jl`](https://github.com/rfourquet/BitIntegers.jl/pull/54) which implements support for arbitrary bit integers via `llvmcall`.
 
 - Work is ongoing to support arbitrary bit integers directly in Julia, see e.g. [Julia #45486](https://github.com/JuliaLang/julia/issues/45486) and [Julia #61359](https://github.com/JuliaLang/julia/pull/61359)
+
+## License
+
+Licensed under the [MIT License](LICENSE).

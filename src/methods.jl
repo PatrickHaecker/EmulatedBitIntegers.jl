@@ -139,6 +139,7 @@ Base.rem(x::EmulatedInteger, ::Type{UInt8}) = x[] % UInt8
 Base.:/(x::T, y::T) where T<:EmulatedInteger = x[] / y[] # Should result in Float64
 
 # Pad to the logical hex width, so `UInt3(7)` prints as `0x7` rather than `0x07`.
+# Note, that this violates the round-trippability of the 2-arg `show` method. However, this is done to be compatible with the types from `Base`, as `Int8(-2)  |> repr |> Meta.parse |> eval |> typeof` results in `Int`.
 Base.show(io::IO, x::T) where T<:EmulatedUnsigned = print(io, "0x", string(x[], pad=hexdigits(T), base=16))
 Base.show(io::IO, x::EmulatedSigned) = show(io, x[])
 

@@ -244,6 +244,21 @@ end
     @test sprint(show, x) == "0x0"
 end
 
+@testset "show" begin
+    @emulate Int3 UInt3 UInt5
+    # Signed: bare decimal, matching Base's `show(::Signed)` convention. Note that this loses type information on round-trip through `Meta.parse |> eval` (same as `Int8`/`Int16`/`Int32`): there's no width-tagged signed literal syntax.
+    @test sprint(show, Int3(-2)) == "-2"
+    @test sprint(show, Int3(0))  == "0"
+    @test sprint(show, Int3(3))  == "3"
+    @test sprint(show, typemin(Int3)) == "-4"
+    @test sprint(show, typemax(Int3)) == "3"
+    # Unsigned: hex padded to the logical width's hex digits — not the storage width.
+    @test sprint(show, UInt3(0)) == "0x0"
+    @test sprint(show, UInt3(7)) == "0x7"
+    @test sprint(show, UInt5(0)) == "0x00"
+    @test sprint(show, typemax(UInt5)) == "0x1f"
+end
+
 @testset "div / fld / cld / fldmod / divrem / ÷ / /" begin
     @emulate UInt3 Int3
     @test div(Int3(-3), Int3(2)) === Int3(-1)
