@@ -7,13 +7,15 @@ Base.getindex(x::EmulatedInteger) = reinterpret(x |> typeof |> storagetypeof, x)
 Base.widen(x::EmulatedInteger) = x[]
 Base.widen(::Type{T}) where T<:EmulatedInteger = storagetypeof(T)
 
-# `Base.tryparse_internal(::Type{T<:Integer}, ...)` accumulates digits in `T` itself, requiring `T(base)` to be representable. For narrow emulated types (e.g. `UInt3`, max 7) `T(10)` throws `InexactError` and parsing of any decimal string fails. Route through the storage type which always fits `base`, then range-check into `T`. `parse` reuses `T(::Real)`'s checked conversion (throws `InexactError` on overflow); `tryparse` does an explicit range check and returns `nothing` to honor its no-throw contract.
-Base.parse(::Type{T}, s::AbstractString; base::Union{Integer,Nothing}=nothing) where T<:EmulatedInteger =
-    convert(T, parse(storagetypeof(T), s; base))
+# `Base.tryparse_internal(::Type{T<:Integer}, ...)` accumulates digits in `T` itself, requiring `T(base)` to be representable. For narrow emulated types (e.g. `UInt3`, max 7) `T(10)` throws `InexactError` and parsing of any decimal string fails. Route through the storage type which always fits `base`, then range-check into `T`: `parse` delegates to Base's `parse` (which raises `ArgumentError` for malformed input and `OverflowError` if even the storage type overflows) and then range-checks, throwing `OverflowError` for the well-formed-but-out-of-`T`-range case; `tryparse` mirrors it via `tryparse`, returning `nothing` for both malformed input and out-of-range values per Base's no-throw contract.
+function Base.parse(::Type{T}, s::AbstractString; base::Union{Integer,Nothing}=nothing) where T<:EmulatedInteger
+    v = parse(storagetypeof(T), s; base)
+    inrange(T, v) ? reinterpret(T, v) : throw(OverflowError(lazy"overflow parsing $(repr(s))"))
+end
 function Base.tryparse(::Type{T}, s::AbstractString; base::Union{Integer,Nothing}=nothing) where T<:EmulatedInteger
     v = tryparse(storagetypeof(T), s; base)
-    v === nothing && return nothing
-    minvalue(T) <= v <= maxvalue(T) ? reinterpret(T, v) : nothing
+    isnothing(v) && return nothing
+    inrange(T, v) ? reinterpret(T, v) : nothing
 end
 
 # Bitwise `&`, `|`, `xor` of two clean operands stay clean for both signedness: wasted bits are either all-0 (unsigned) or a copy of bit N-1 (signed), and each op preserves that invariant — so `reinterpret` is safe and avoids the modular `% T` reduction.
