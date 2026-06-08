@@ -475,10 +475,12 @@ end
 end
 
 @testset "range length" begin
-    @emulate UInt3
+    @emulate UInt3 UInt129
     @test length(UInt3(1):UInt3(3)) === 3       # Int, not UInt3.
     @test length(UInt3(0):UInt3(7)) === 8       # would wrap to 0 with element-typed result.
     @test length(UInt3(3):UInt3(2)) === 0       # empty range.
+    # High endpoints (> typemax(Int)) with a small count: must not throw `InexactError` on endpoint conversion.
+    @test length(typemax(UInt129)-UInt129(2) : typemax(UInt129)) === 3
 end
 
 @testset "large" begin

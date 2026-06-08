@@ -184,8 +184,10 @@ end
 # Promote with `AbstractFloat`: mirrors Base's policy for primitive integers (e.g. `Int128 + Float16(1) === Inf16`) — the float wins regardless of width, and the user accepts whatever precision/overflow loss that implies (so e.g. `UInt1023 + Float16(1)` is allowed and likely returns `Inf16`). Base's float/integer promote rules use concrete `Float{16,32,64}` plus `Union{Bool,IntN,UIntN,...}` of concrete integer types, none of which include `EmulatedInteger`, so no ambiguity with Base.
 Base.promote_rule(::Type{<:EmulatedInteger}, ::Type{F}) where F<:AbstractFloat = F
 
-# `length` of a unit range of emulated values: Base's `AbstractUnitRange` fallback computes `last - first + one(T)` in the element type, which wraps silently when the count exceeds `typemax(T)` (e.g. `length(UInt3(0):UInt3(7))` would give `UInt3(0)`). Widen via `Int` on the storage values, mirroring what Base does for `UnitRange{<:Integer}` (returns `Int`).
-Base.length(r::AbstractUnitRange{<:EmulatedInteger}) = max(0, Int(last(r)[]) - Int(first(r)[]) + 1)
+# `length` of a unit range of emulated values: Base's `AbstractUnitRange` fallback computes `last - first + one(T)` in the element type, which wraps silently when the count exceeds `typemax(T)` (e.g. `length(UInt3(0):UInt3(7))` would give `UInt3(0)`). Subtract on the storage values, then cast to `Int` — same shape as Base's specialization for narrow primitive integers. Storage subtraction never overflows: the constructor guarantees `bits(T) < 8*sizeof(storagetypeof(T))`, so the range `[minvalue(T), maxvalue(T)]` is strictly narrower than the storage range. Final `Int(...)` throws `InexactError` if the count exceeds `typemax(Int)`, matching Base's behavior for `Int128`/`UInt128` ranges.
+# Base.length(r::AbstractUnitRange{<:EmulatedInteger}) = max(0, Int(last(r)[]) - Int(first(r)[]) + 1)
+Base.length(r::AbstractUnitRange{<:EmulatedInteger}) = last(r) < first(r) ? 0 : Int(last(r)[] - first(r)[]) + 1
+
 
 # Uniform random sampling: draw a uniform storage value and re-clean via `% T`. Each logical value gets exactly `2^wastedbits(T)` storage preimages (one for each combination of the wasted bits), so the resulting distribution is uniform over `[minvalue(T), maxvalue(T)]` for both signed and unsigned types.
 Base.rand(rng::Random.AbstractRNG, ::Random.SamplerType{T}) where T<:EmulatedInteger = rand(rng, storagetypeof(T)) % T
