@@ -118,8 +118,8 @@ will check for overflow three times in theory. Yet, `LLVM` can save the day in t
 
 If you define a type with a manual storage type which is identical to the regular storage type, the type with the regular storage type is created with a type alias to the type with the manual storage. For example
 
-```julia
-@emulate Int7_8
+```jldoctest usage
+julia> @emulate Int7_8
 ```
 
 is a shortcut for
@@ -133,8 +133,8 @@ The signedness of data and storage types are always identical.
 
 If you want to `@emulate` multiple types, you can simply provide multiple arguments to the macro with regular macro syntax:
 
-```julia
-@emulate Int3 UInt3 UInt4 UInt5
+```jldoctest usage
+julia> @emulate Int3 UInt3 UInt4 UInt5
 ```
 
 If you `@emulate` an already defined type, nothing will be done (not even any output).
@@ -176,13 +176,6 @@ julia> zext(UInt16, Int8(-1))
 ```
 
 The single-argument form `zext(x)` zero-extends an emulated integer to its storage type, clearing the unused high bits. For non-emulated integers it is the identity.
-
-## Future Work
-
-For completeness, it would make sense to go through BitIntegers.jl and SaferIntegers.jl and implement all methods which they implement. Hopefully, with the provided code everyone can do this if there is demand.
-
-See [`ROADMAP.md`](ROADMAP.md) for speculative design directions (lazy bit
-cleaning, a two-type "dirty" variant).
 
 ## Related Work
 
