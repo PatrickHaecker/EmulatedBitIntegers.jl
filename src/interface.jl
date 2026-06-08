@@ -39,6 +39,10 @@ function zext(T::Type{<:Integer}, x::Integer)
     reinterpret(T, convert(T |> unsigned, reinterpret(x |> zext |> typeof |> unsigned, x |> zext)))
 end
 
+# Zero-extension to the storage type. Unsigned storage is already clean. Signed storage is sign-extended, so mask off the wasted high bits; the mask `storagetypeof(T)(-1) >>> wastedbits(T)` folds to a literal.
+zext(x::EmulatedUnsigned) = x[]
+zext(x::T) where T<:EmulatedSigned = x[] & (storagetypeof(T)(-1) >>> wastedbits(T))
+
 """
     storagetypeof(T::Type) -> Type
 

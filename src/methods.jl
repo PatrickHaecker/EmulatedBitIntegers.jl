@@ -23,10 +23,6 @@ function Base.tryparse(::Type{T}, s::AbstractString; base::Union{Integer,Nothing
     minvalue(T) <= v <= maxvalue(T) ? reinterpret(T, v) : nothing
 end
 
-# Zero-extension to the storage type. Unsigned storage is already clean. Signed storage is sign-extended, so mask off the wasted high bits; the mask `storagetypeof(T)(-1) >>> wastedbits(T)` folds to a literal.
-zext(x::EmulatedUnsigned) = x[]
-zext(x::T) where T<:EmulatedSigned = x[] & (storagetypeof(T)(-1) >>> wastedbits(T))
-
 # Bitwise `&`, `|`, `xor` of two clean operands stay clean for both signedness: wasted bits are either all-0 (unsigned) or a copy of bit N-1 (signed), and each op preserves that invariant — so `reinterpret` is safe and avoids the modular `% T` reduction.
 for OP in (:&, :|, :xor)
     @eval Base.$OP(x::T, y::T) where T<:EmulatedInteger = reinterpret(T, $OP(x[], y[]))
