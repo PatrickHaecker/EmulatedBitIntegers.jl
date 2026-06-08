@@ -6,9 +6,9 @@ using PrecompileTools: @compile_workload
 
 export @emulate, bits, zext, storagetypeof
 
-abstract type EmulatedUnsigned{S} <: Unsigned end
-abstract type EmulatedSigned{S} <: Signed end
-const EmulatedInteger{S} = Union{EmulatedUnsigned{S}, EmulatedSigned{S}}
+abstract type EmulatedUnsigned{S, L} <: Unsigned end
+abstract type EmulatedSigned{S, L} <: Signed end
+const EmulatedInteger{S, L} = Union{EmulatedUnsigned{S, L}, EmulatedSigned{S, L}}
 const UnifiedInteger = Union{EmulatedInteger, Base.BitInteger}
 
 include("IntegerType.jl")

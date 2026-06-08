@@ -46,10 +46,8 @@ function emulate(T::Symbol, t::IntegerType)
     exprs = Expr[]
     parent = t.signed ? EmulatedSigned : EmulatedUnsigned
 
-    # `EmulatedInteger` needs to be a primitive type to work with EnumX as `Base.bitcast` is used in v1.0.7. Although the bug is fixed in the `master` branch, other packages might contain similar bugs. Additionally, this makes the emulated integers as similar as possible to Base's primitive integers. However, [primitive types cannot use the type parameter for its size](https://discourse.julialang.org/t/primitive-parametric-types/27173). Whenever possible without loss of functionality or performance, we want to avoid defining more methods than necessary. Instead, different method instances of the same method are used to implement type-specific behavior. This is both a bit nicer on resource usage and can avoid quite some invalidations. In order to do this, we use parametric parent types (`EmulatedSigned{S}` and `EmulatedUnsigned{S}`) to dispatch on the storage type `S` for methods that need to know it (e.g. `bits`), and the concrete primitive type `T` for methods that need to dispatch on the logical type (e.g. `+`). This way, the methods that only need to know the storage type are shared between all emulated integers with the same storage type, and only the methods that need to dispatch on the logical type are per-type.
-
-    #This is also the reason for UInt7 to be always 8 bits internally and using the underscore-suffix syntax like UInt7_16 to be 16 bits internally.
-    @push! primitive type $T <: $parent{$(t.storage_type)} $(t.storage_bits) end
+    # `EmulatedInteger` needs to be a primitive type to work with EnumX as `Base.bitcast` is used in v1.0.7. Although the bug is fixed in the `master` branch, other packages might contain similar bugs. Additionally, this makes the emulated integers as similar as possible to Base's primitive integers. However, [primitive types cannot use the type parameter for its size](https://discourse.julialang.org/t/primitive-parametric-types/27173). Whenever possible without loss of functionality or performance, we want to avoid defining more methods than necessary. Instead, different method instances of the same method are used to implement type-specific behavior. This is both a bit nicer on resource usage and can avoid quite some invalidations. In order to do this, we use parametric parent types (`EmulatedSigned{S, L}` and `EmulatedUnsigned{S, L}`) to dispatch on the storage type `S` and logical bit width `L` for methods that need to know them (e.g. `bits`, `storagetypeof`), and the concrete primitive type `T` for methods that need to dispatch on the logical type (e.g. `+`). This way, the methods that only need to know the storage type and/or logical width are shared between all emulated integers with the same storage type and width, and only the methods that need to dispatch on the logical type are per-type.
+    @push! primitive type $T <: $parent{$(t.storage_type), $(t.logical_bits)} $(t.storage_bits) end
 
     # Per-type docstring attached to the type binding so `?$T` resolves. The constructor itself is the generic `(::Type{T})(x::Real) where T<:EmulatedInteger`; `Core.@doc` on the bare symbol documents the binding rather than a method, which is what `@doc $T` looks up.
     doc_T = """
@@ -84,9 +82,6 @@ function emulate(T::Symbol, t::IntegerType)
             @push! $lhs = $rhs % $T
         end
     end
-
-    # Per-type traits feeding the abstract-typed methods in `methods.jl`. Each is a single-method constant-returning function so the call sites fold to a literal at inference time. The methods are added to functions owned by `EmulatedBitIntegers`, so the macro-expansion site (the caller's module) reaches them via the fully-qualified module path; function-name interpolation does not work in macros [discussion](https://discourse.julialang.org/t/adding-method-to-function-in-macro/128613/5). All other trait values (`wastedbits`, `maxvalue`, `minvalue`, `hexdigits`) are derived from these two in `methods.jl`.
-    @push! $EmulatedBitIntegers.bits(::Type{<:$T}) = $(t.logical_bits)
 
     return Expr(:block, exprs...)
 end

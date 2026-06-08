@@ -32,7 +32,8 @@ Base.rem(x::Integer, ::Type{T}) where T<:EmulatedUnsigned = reinterpret(T, conve
 Base.rem(x::T, y::T) where T<:EmulatedInteger = reinterpret(T, rem(x[], y[]))
 Base.mod(x::T, y::T) where T<:EmulatedInteger = reinterpret(T, mod(x[], y[]))
 
-# Type-traits derived from `bits` and `storagetypeof`, both of which are constant-returning single-method functions installed per emulated type by `@emulate`. Inference folds these chains down to the same literals the macro would have baked in directly.
+# `bits` reads the logical width directly off the `L` type parameter of the abstract supertype; one method covers every emulated type. `storagetypeof` is defined in `interface.jl` against the `S` parameter the same way. The remaining trait functions derive from these two; inference folds the chains down to literals at every call site.
+bits(::Type{<:EmulatedInteger{S, L}}) where {S, L} = L
 wastedbits(::Type{T}) where T<:EmulatedInteger = 8*sizeof(T) - bits(T)
 maxvalue(::Type{T}) where T<:EmulatedSigned = storagetypeof(T)(-1) >>> (wastedbits(T) + 1)
 maxvalue(::Type{T}) where T<:EmulatedUnsigned = ~storagetypeof(T)(0) >> wastedbits(T)
