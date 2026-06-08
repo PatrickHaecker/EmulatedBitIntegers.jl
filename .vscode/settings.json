@@ -44,6 +44,7 @@
         "storagetypemax",
         "storagetypemin",
         "storagetypeof",
+        "supertypes",
         "Swstype",
         "testitem",
         "testmodule",

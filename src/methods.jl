@@ -1,4 +1,4 @@
-# Methods on the abstract types `EmulatedInteger`/`EmulatedSigned`/`EmulatedUnsigned`. Loaded once at package precompile; each method serves every emulated type that ever gets created via `@emulate`. Compile-time constants come from the per-type `bits` and `storagetypeof` traits installed by the macro in `emulate.jl`.
+# Methods on the abstract types `EmulatedInteger`/`EmulatedSigned`/`EmulatedUnsigned`. Loaded once at package precompile; each method serves every emulated type that ever gets created via `@emulate`. Compile-time constants come from the `S` (storage type) and `L` (logical bits) parameters of the abstract supertypes; inference folds the resulting trait chains down to literals at every call site.
 
 # Unwrap to the storage value. The macro installs a `storagetypeof(::Type{T}) = <storage_type>` constant-returning method per emulated type, so this folds to a single `reinterpret`.
 Base.getindex(x::EmulatedInteger) = reinterpret(x |> typeof |> storagetypeof, x)
@@ -54,7 +54,6 @@ for RM in roundingmodetypes()
         @eval Base.div(x::T, y::T, r::$RM) where T<:$P = div(x[], y[], r) % T
     end
 end
-# `<<(::T,::Integer)` is installed per type by `@emulate` for the same reason: Base specializes shifts for `Unsigned` and for `Int` vs other `Integer`, so an abstract method is ambiguous.
 
 Base.:-(x::T)   where T<:EmulatedInteger = -x[]  % T
 # `abs` on an unsigned is the identity; `% T` would add a useless `& maxvalue` the compiler can't elide. Signed `abs` lowers to the storage intrinsic + modular re-clean.

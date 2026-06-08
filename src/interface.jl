@@ -25,7 +25,7 @@ function bits(::Type{T}) where T
     8 * Base.packedsize(T)
 end
 bits(::Type{T}) where T<:Base.BitInteger = 8 * sizeof(T)
-# As `Base.Bottom <: UnifiedInteger`, type inference thinks that `x |> typeof` below could be `Bottom`, although it can't as there is no value of type `Bottom`. However, as `Base.Bottom <: Base.BitInteger`, type inference will match the method in the line above which would lead to a call to `sizeof(Base.Bottom)` which would error. JET.jl points this out. Therefore, handle this case explicitly to tell type inference that this error is on purpose (although it won't actually happen).
+# `Base.Bottom` is a subtype of every type, including `Base.BitInteger`, so the `<:Base.BitInteger` method above would match it and recurse into `sizeof(Bottom)`, which errors. Bottom has no instances, so this branch is unreachable at runtime; the explicit method exists only to give type inference (and JET) a deterministic answer instead of the propagated error.
 bits(::Type{Base.Bottom}) = lazy"Cannot determine bits for Bottom" |> ArgumentError |> throw
 bits(x) = x |> typeof |> bits
 

@@ -18,7 +18,7 @@ Until then, `EmulatedBitIntegers.jl`, well, emulates the integers by storing the
 
 ## Usage
 
-`EmulatedBitIntegers.jl` can be installed via the [TEC registry](https://github.boschdevcloud.com/BERTA/tec-registry):
+`EmulatedBitIntegers.jl` is installed via the General registry:
 
 ```julia
 pkg> add EmulatedBitIntegers
