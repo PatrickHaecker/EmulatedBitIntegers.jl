@@ -47,9 +47,8 @@ hexdigits(::Type{T}) where T<:EmulatedInteger  = (((unsigned(bits(T)) + 3) >> 2)
 for OP in (:+, :-, :*)
     @eval Base.$OP(x::T, y::T) where T<:EmulatedInteger = $OP(x[], y[]) % T
 end
-# `div(x, y, R)` powers `div`/`fld`/`cld`/`fldmod`/`divrem` via Base's `RoundingMode`-dispatched routing. Base specializes the integer overloads per `RoundingMode` subtype (and separately for `T<:Unsigned`), so an abstract method on `EmulatedInteger` with an abstract `::RoundingMode` arg is ambiguous against `Base.div(::T, ::T, ::RoundingMode{:Down}) where T<:Unsigned` for `T<:EmulatedUnsigned`. Splitting by signedness and unrolling per `RoundingMode` makes our methods strictly more specific in every dimension Base specializes. The list is discovered once via `roundingmodetypes()` so a new mode added to Julia is picked up automatically.
-roundingmodetypes() = unique(typeof(v) for v in (getfield(Base, n) for n in names(Base)) if v isa RoundingMode)
-for RM in roundingmodetypes()
+# `div(x, y, R)` powers `div`/`fld`/`cld`/`fldmod`/`divrem` via Base's `RoundingMode`-dispatched routing. Base specializes the integer overloads per `RoundingMode{:Mode}` (and separately for `T<:Unsigned`), so an abstract method on `EmulatedInteger` with `::RoundingMode` is ambiguous against e.g. `Base.div(::T, ::T, ::RoundingMode{:Down}) where T<:Unsigned`. Splitting by signedness and unrolling per concrete mode makes our methods strictly more specific in every dimension Base specializes. The list mirrors every `RoundingMode{:Mode}` that Base's `div(::Integer, ::Integer, ::RoundingMode)` machinery resolves; a test in `runtests.jl` asserts the two stay in sync, so a new mode added to Julia surfaces as a test failure rather than a silent miss.
+for RM in (RoundingMode{:Up}, RoundingMode{:Down}, RoundingMode{:ToZero}, RoundingMode{:FromZero}, RoundingMode{:Nearest}, RoundingMode{:NearestTiesAway}, RoundingMode{:NearestTiesUp})
     for P in (EmulatedSigned, EmulatedUnsigned)
         @eval Base.div(x::T, y::T, r::$RM) where T<:$P = div(x[], y[], r) % T
     end

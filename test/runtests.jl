@@ -259,6 +259,21 @@ end
     @test divrem(UInt3(5), UInt3(3)) === (UInt3(1), UInt3(2))
     @test div(Int3(3), Int3(2), RoundNearest) === Int3(2)
     @test div(Int3(3), Int3(2), RoundFromZero) === Int3(2)
+    # Every concrete `RoundingMode{:Mode}` Base's integer-`div` machinery resolves to must have a matching `Base.div(::T, ::T, ::RoundingMode{:Mode}) where T<:Emulated*` method installed by this package. Walking both method tables (instead of comparing against the source-side constant directly) keeps the check honest end-to-end; a new mode added to Julia and missed in `methods.jl` surfaces as a test failure rather than a silent dispatch into Base's promotion fallback.
+    rounding_modes_of(meths) = let s = Set{Type}()
+        for m in meths
+            sig = m.sig isa UnionAll ? Base.unwrap_unionall(m.sig) : m.sig
+            rm = sig.parameters[end]
+            for t in (rm isa Union ? Base.uniontypes(rm) : (rm,))
+                t === RoundingMode || push!(s, t)  # skip the abstract-`RoundingMode` fallback method
+            end
+        end
+        s
+    end
+    base_modes = rounding_modes_of(methods(div, Tuple{Integer, Integer, RoundingMode}))
+    ours_modes = rounding_modes_of(Iterators.filter(m -> m.module === EmulatedBitIntegers,
+                                                    methods(div, Tuple{EmulatedBitIntegers.EmulatedInteger, EmulatedBitIntegers.EmulatedInteger, RoundingMode})))
+    @test base_modes == ours_modes
     # `÷` is the operator form of `div`; `/` returns Float64.
     @test Int4(4) ÷ Int4(4) === Int4(1)
     @test_throws DivideError Int4(-2) ÷ Int4(0)
