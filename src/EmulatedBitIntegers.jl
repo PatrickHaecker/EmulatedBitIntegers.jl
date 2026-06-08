@@ -20,6 +20,16 @@ include("emulate.jl")
 @compile_workload begin
     precompile(Tuple{typeof(emulate!), Vector{Pair{Symbol, Expr}}, Symbol, Module})
 
+    # Do a bit of precompilation. Although it's a mess, it seems to help somewhat.
+    @eval module _PrecompileShifts
+        using EmulatedBitIntegers
+        # One emulated type per storage class so each Base shift MI gets pulled in.
+        @emulate UInt7 Int7 UInt15 Int15 UInt31 Int31 UInt63 Int63
+        for T in (UInt7, Int7, UInt15, Int15, UInt31, Int31, UInt63, Int63)
+            T(0) << 1; T(0) >> 1; T(0) >>> 1
+        end
+    end
+
     # `zext` interface over Base's primitive bit integers. The two-arg form is valid only when the destination is at least as wide as the source.
     for T in (Int8, Int16, Int32, Int64, Int128, UInt8, UInt16, UInt32, UInt64, UInt128)
         zext(T(0))
