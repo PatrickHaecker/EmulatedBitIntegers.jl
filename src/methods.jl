@@ -41,10 +41,12 @@ Base.mod(x::T, y::T) where T<:EmulatedInteger = reinterpret(T, mod(x[], y[]))
 
 # Type-traits derived from `bits` and `storagetypeof`, both of which are constant-returning single-method functions installed per emulated type by `@emulate`. Inference folds these chains down to the same literals the macro would have baked in directly.
 wastedbits(::Type{T}) where T<:EmulatedInteger = 8*sizeof(T) - bits(T)
-maxvalue(::Type{T})  where T<:EmulatedSigned   = storagetypeof(T)(-1) >>> (wastedbits(T) + 1)
-maxvalue(::Type{T})  where T<:EmulatedUnsigned = ~storagetypeof(T)(0) >> wastedbits(T)
-minvalue(::Type{T})  where T<:EmulatedSigned   = storagetypeof(T)(-1) << (bits(T) - 1)
-minvalue(::Type{T})  where T<:EmulatedUnsigned = storagetypeof(T)(0)
+maxvalue(::Type{T}) where T<:EmulatedSigned = storagetypeof(T)(-1) >>> (wastedbits(T) + 1)
+maxvalue(::Type{T}) where T<:EmulatedUnsigned = ~storagetypeof(T)(0) >> wastedbits(T)
+minvalue(::Type{T}) where T<:EmulatedSigned = storagetypeof(T)(-1) << (bits(T) - 1)
+minvalue(::Type{T}) where T<:EmulatedUnsigned = storagetypeof(T)(0)
+inrange(::Type{T}, x::Integer) where T<:EmulatedSigned = minvalue(T) <= x <= maxvalue(T)
+inrange(::Type{T}, x::Integer) where T<:EmulatedUnsigned = x <= maxvalue(T)
 hexdigits(::Type{T}) where T<:EmulatedInteger  = (((unsigned(bits(T)) + 3) >> 2) % Int)::Int
 
 # Arithmetic methods break the otherwise infinite promotion fallback: every emulated type is a `primitive type`, not a `BitInteger` as `BitInteger` is a `Union` and therefore closed for extension. So Base's intrinsic-backed `op(::T, ::T) where T<:BitInteger` does not apply. The generic `op(::Integer, ::Integer) = op(promote(x, y)...)` would promote two same-typed emulated integers to themselves (per our `promote_rule`) and recurse — `StackOverflowError`. A concrete two-argument method per `EmulatedInteger` lowers the operation onto the storage type and routes the result through the modular `% T` reduction.
