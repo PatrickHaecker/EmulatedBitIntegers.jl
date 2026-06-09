@@ -5,9 +5,36 @@ using Random: Random
 using PrecompileTools: @compile_workload
 
 export @emulate, bits, zext, storagetypeof
+public EmulatedInteger, EmulatedSigned, EmulatedUnsigned
 
+"""
+    EmulatedUnsigned{S, L} <: Unsigned
+
+Abstract supertype of every emulated unsigned integer with storage type `S` and logical bit width `L`.
+
+Every concrete type produced by [`@emulate`](@ref) for an unsigned width is a primitive subtype of this.
+Use it as a dispatch target when defining methods that should apply to all emulated unsigned widths
+sharing a given storage and/or logical width — e.g. `Base.foo(x::EmulatedUnsigned) = ...`.
+"""
 abstract type EmulatedUnsigned{S, L} <: Unsigned end
+
+"""
+    EmulatedSigned{S, L} <: Signed
+
+Abstract supertype of every emulated signed integer with storage type `S` and logical bit width `L`.
+
+Every concrete type produced by [`@emulate`](@ref) for a signed width is a primitive subtype of this.
+Use it as a dispatch target when defining methods that should apply to all emulated signed widths
+sharing a given storage and/or logical width — e.g. `Base.foo(x::EmulatedSigned) = ...`.
+"""
 abstract type EmulatedSigned{S, L} <: Signed end
+
+"""
+    EmulatedInteger{S, L}
+
+`Union` of [`EmulatedUnsigned{S, L}`](@ref) and [`EmulatedSigned{S, L}`](@ref). Public dispatch target
+for methods that apply to any emulated integer regardless of signedness.
+"""
 const EmulatedInteger{S, L} = Union{EmulatedUnsigned{S, L}, EmulatedSigned{S, L}}
 
 include("IntegerType.jl")
