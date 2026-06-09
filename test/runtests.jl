@@ -116,6 +116,8 @@ end
     # Instance form delegates to type.
     @test bits(Int8(1)) === 8
     @test bits(TwoInts(Int8(0), Int16(0))) === 24
+    # `Base.Bottom` subtypes `Base.BitInteger`; the dedicated method throws to keep inference deterministic.
+    @test_throws ArgumentError bits(Base.Bottom)
 end
 
 @testset "zext" begin
