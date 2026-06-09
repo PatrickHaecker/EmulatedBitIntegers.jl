@@ -74,11 +74,6 @@ Compute the number of hexadecimal digits this unsigned integer type needs for pr
 # This is an optimized version of div(t.bits, 4, RoundUp)
 hexdigits(x::IntegerType) = (((unsigned(x.logical_bits) + 3) >> 2) % Int)::Int
 
-# A (self-documenting) generalization could look like this.
-# hexdigits(x::IntegerType) = div(x.bits |> unsigned, Val(4), RoundUp)
-# Base.div(n::T, d::Val{T{4}}, ::RoundUp) where T<:Unsigned = (((n + 3) >> 2) % T)::T
-# Base.div(n::T, d::Val{T4}, ::RoundUp) where {T<:Unsigned,T4::T{4}} = (((n + 3) >> 2) % T)::T
-
 """
     nextbytesize(x::Integer)
 

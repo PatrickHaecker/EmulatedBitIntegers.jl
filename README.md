@@ -12,7 +12,7 @@
 
 ## Overview
 
-`EmulatedBitIntegers.jl` provides integers with N bits where N is not a multiple of 8 (i.e. 1 byte). For sizes that are multiples of 8, use the existing primitive types or `BitIntegers.jl`. This package should only be relevant until [primitive types can be of any bitsize](https://github.com/JuliaLang/julia/issues/45486) as already supported by LLVM. Then, you can hopefully simply switch to `BitIntegers.jl` with native support. In order to facilitate this future transition, `EmulatedBitIntegers.jl` tries to provide types as closely as possible to the primitive types of any bitsize by being itself primitive types and not using type parameters.
+`EmulatedBitIntegers.jl` provides integers with N bits where N is not a multiple of 8 (i.e. 1 byte). For sizes that are multiples of 8, use the existing primitive types or `BitIntegers.jl`. This package should only be relevant until [primitive types can be of any bitsize](https://github.com/JuliaLang/julia/issues/45486) as already supported by LLVM. Then, you can hopefully simply switch to `BitIntegers.jl` with native support. In order to facilitate this future transition, `EmulatedBitIntegers.jl` tries to provide types as closely as possible to the primitive types of any bitsize by being themselves primitive types and not using type parameters.
 
 Until then, `EmulatedBitIntegers.jl`, well, emulates the integers by storing them in a (larger) primitive type, but behaving as if the intended type were implemented in hardware. For most operations, this needs some additional CPU instructions for masking or bit shifting operations. However, modern CPUs are quite efficient in doing these additional "lightweight" operations, up to the point that no additional cycles are needed. But in general expect that there are cases where some slowdown happens compared to integers with a size supported by the used hardware.
 
@@ -81,15 +81,15 @@ Int7_16
 The storage type does not need to be a power-of-two byte size when using
 `BitIntegers.jl`:
 
-```julia
+```jldoctest usage
 julia> using BitIntegers
 
-julia> @define_integers 24
+julia> @define_integers 24;
 ```
 
 Then `Int24` can be used as the storage type:
 
-```jldoctest usage; setup = :(using BitIntegers; BitIntegers.@define_integers 24)
+```jldoctest usage
 julia> @emulate Int20_24
 
 julia> Int20_24 |> storagetypeof

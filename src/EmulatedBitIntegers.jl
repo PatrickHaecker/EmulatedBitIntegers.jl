@@ -1,6 +1,5 @@
 module EmulatedBitIntegers
 
-# import Random
 using Random: Random
 using PrecompileTools: @compile_workload
 
