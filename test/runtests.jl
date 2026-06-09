@@ -500,6 +500,22 @@ end
     @test length(typemax(UInt129)-UInt129(2) : typemax(UInt129)) === 3
 end
 
+@testset "iseven / isodd" begin
+    @emulate UInt3 Int3
+    @test iseven(UInt3(0)) && iseven(UInt3(4)) && iseven(UInt3(6))
+    @test isodd(UInt3(1)) && isodd(UInt3(5)) && isodd(UInt3(7))
+    @test iseven(Int3(-2)) && iseven(typemin(Int3))
+    @test isodd(Int3(-1)) && isodd(Int3(-3)) && isodd(typemax(Int3))
+end
+
+@testset "hash compatibility with Base integers" begin
+    @emulate UInt3 Int3
+    # Equal-valued integers across types must hash equal so `Dict{Integer}` interop works.
+    @test hash(UInt3(5)) === hash(0x5) === hash(5)
+    @test hash(Int3(-1)) === hash(Int8(-1)) === hash(-1)
+    @test hash(UInt3(0)) === hash(0)
+end
+
 @testset "large" begin
     @emulate Int129 UInt129
     @test Int129(1) + Int129(2) === Int129(3)
