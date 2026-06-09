@@ -42,7 +42,24 @@ jobs:
       - name: Use Julia cache
         uses: julia-actions/cache@v2
       - uses: julia-actions/julia-buildpkg@v1
+      # On Julia 1.10, `Pkg.test` from the activated project doesn't honor `[sources]`
+      # path entries (a 1.11+ feature). Dev the path-based test deps into a temp env
+      # and test by name. Registered deps like JET are resolved normally from the registry
+      # (1.10 picks the latest 1.10-compatible JET, which is sufficient).
+      - name: Run tests (lts path)
+        if: ${{ inputs.version == 'lts' }}
+        run: |
+          julia --color=yes -e '
+            using Pkg
+            Pkg.activate(; temp=true)
+            Pkg.develop([
+                PackageSpec(path=pwd()),
+                PackageSpec(path=joinpath(pwd(), "test", "PrecompileTest")),
+            ])
+            Pkg.test("EmulatedBitIntegers"; coverage=true,
+                     julia_args=["--check-bounds=yes", "--depwarn=yes"])'
       - uses: julia-actions/julia-runtest@v1
+        if: ${{ inputs.version != 'lts' }}
       - uses: julia-actions/julia-processcoverage@v1
         if: ${{ inputs.run_codecov }}
       - uses: codecov/codecov-action@v4
