@@ -5,7 +5,7 @@ using Random: Random
 using PrecompileTools: @compile_workload
 
 export @emulate, bits, zext, storagetypeof
-public EmulatedInteger, EmulatedSigned, EmulatedUnsigned
+VERSION >= v"1.11.0-DEV.469" && "public EmulatedInteger, EmulatedSigned, EmulatedUnsigned" |> Meta.parse |> eval
 
 """
     EmulatedUnsigned{S, L} <: Unsigned

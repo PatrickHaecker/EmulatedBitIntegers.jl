@@ -16,6 +16,3 @@ Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 EmulatedBitIntegers = {path = ".."}
 JET = {rev = "julia-1.13-compat", url = "https://github.com/PatrickHaecker/JET.jl"}
 PrecompileTest = {path = "PrecompileTest"}
-
-[compat]
-julia = "1.11"

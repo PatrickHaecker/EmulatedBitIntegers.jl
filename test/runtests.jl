@@ -154,12 +154,14 @@ end
     # `convert` routes through the constructor.
     @test convert(UInt3, 2.0) === UInt3(2)
     # Rounding-into-type.
-    @test round(UInt3, 2.5) === UInt3(2)   # ties to even
-    @test round(UInt3, 2.4) === UInt3(2)
-    @test floor(Int3, -1.5) === Int3(-2)
-    @test ceil(Int3, 1.5) === Int3(2)
-    @test trunc(UInt3, 2.9) === UInt3(2)
-    @test_throws InexactError round(UInt3, 8.0)
+    if VERSION >= v"1.11" 
+        @test round(UInt3, 2.5) === UInt3(2)   # ties to even
+        @test round(UInt3, 2.4) === UInt3(2)
+        @test floor(Int3, -1.5) === Int3(-2)
+        @test ceil(Int3, 1.5) === Int3(2)
+        @test trunc(UInt3, 2.9) === UInt3(2)
+        @test_throws InexactError round(UInt3, 8.0)
+    end
 end
 
 @testset "parse / tryparse" begin
