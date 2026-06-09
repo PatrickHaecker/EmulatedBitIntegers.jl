@@ -546,7 +546,7 @@ runtime_calls(ops) = count(l -> occursin("call ", l) && !occursin("@llvm.", l), 
     # `>>>` with a runtime shift amount lowers to ~13 IR lines (mask, branch, mod), but the typical hot-path use is a constant shift; wrap it in a helper so the constant folds into the body.
     shr1(x::UInt3) = x >>> 1
 
-    # `(label, f, types, exact_ops)`. Counts are exact on Julia 1.11+ (calibrated on 1.11.9 and 1.13.0-rc1; both produce identical IR for these methods).
+    # `(label, f, types, exact_ops)`. Counts are exact on Julia 1.11+ with default codegen options (calibrated on 1.11.9 and 1.13.0-rc1; both produce identical IR for these methods). Coverage instrumentation and `--check-bounds=yes` both inflate counts (CI runs with both), and 1.10's codegen differs, so the exact-count check is gated below.
     cases = [
         ("UInt3 +",             Base.:+,         Tuple{UInt3, UInt3},       2),
         ("UInt3 *",             Base.:*,         Tuple{UInt3, UInt3},       2),
@@ -564,12 +564,17 @@ runtime_calls(ops) = count(l -> occursin("call ", l) && !occursin("@llvm.", l), 
         ("UInt20 +",            Base.:+,         Tuple{UInt20, UInt20},     2),
     ]
 
+    # Exact counts only hold for clean codegen: Julia 1.11+, no coverage instrumentation, and `--check-bounds` at its default (0 = default, 1 = yes, 2 = no). The `runtime_calls == 0` invariant remains the important one and runs unconditionally.
+    counts_calibrated = VERSION >= v"1.11" &&
+                        Base.JLOptions().code_coverage == 0 &&
+                        Base.JLOptions().check_bounds == 0
+
     for (label, f, types, exact_ops) in cases
         ops = llvm_ops(f, types)
         # No dispatch into runtime helpers — every operation must lower to native instructions or LLVM intrinsics. Also rules out allocations, which would surface as `@jl_gc_*` calls.
         @test runtime_calls(ops) == 0
-        # Exact op count — any drift (up or down) signals a codegen change worth a look. Julia 1.10's codegen produces different counts; skip the check there.
-        VERSION >= v"1.11" && @test length(ops) == exact_ops
+        # Exact op count — any drift (up or down) signals a codegen change worth a look.
+        counts_calibrated && @test length(ops) == exact_ops
     end
 end
 
