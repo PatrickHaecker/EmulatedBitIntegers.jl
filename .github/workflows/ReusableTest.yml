@@ -40,7 +40,7 @@ jobs:
           version: ${{ inputs.version }}
           arch: ${{ inputs.arch }}
       - name: Use Julia cache
-        uses: julia-actions/cache@v2
+        uses: julia-actions/cache@v3
       # `julia-buildpkg` instantiates the whole workspace (the main project plus
       # `test/`), so it resolves the test-only JET dependency. On the Julia 1.13
       # pre-release that resolve is unsatisfiable (registered JET caps below 1.13);
