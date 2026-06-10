@@ -41,7 +41,13 @@ jobs:
           arch: ${{ inputs.arch }}
       - name: Use Julia cache
         uses: julia-actions/cache@v2
+      # `julia-buildpkg` instantiates the whole workspace (the main project plus
+      # `test/`), so it resolves the test-only JET dependency. On the Julia 1.13
+      # pre-release that resolve is unsatisfiable (registered JET caps below 1.13);
+      # the `pre` test step injects the fork into a temp env instead, so skip the
+      # workspace build here for `pre`.
       - uses: julia-actions/julia-buildpkg@v1
+        if: ${{ inputs.version != 'pre' }}
       # On Julia 1.10, `Pkg.test` from the activated project doesn't honor `[sources]`
       # path entries (a 1.11+ feature). Dev the path-based test deps into a temp env
       # and test by name. JET resolves normally from the registry.
