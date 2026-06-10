@@ -44,8 +44,7 @@ jobs:
       - uses: julia-actions/julia-buildpkg@v1
       # On Julia 1.10, `Pkg.test` from the activated project doesn't honor `[sources]`
       # path entries (a 1.11+ feature). Dev the path-based test deps into a temp env
-      # and test by name. Registered deps like JET are resolved normally from the registry
-      # (1.10 picks the latest 1.10-compatible JET, which is sufficient).
+      # and test by name. JET resolves normally from the registry.
       - name: Run tests (lts path)
         if: ${{ inputs.version == 'lts' }}
         run: |
@@ -58,8 +57,26 @@ jobs:
             ])
             Pkg.test("EmulatedBitIntegers"; coverage=true,
                      julia_args=["--check-bounds=yes", "--depwarn=yes"])'
+      # Julia 1.13 pre-release: registered JET does not yet support 1.13, so dev
+      # the fork's `julia-1.13-compat` branch into a temp env alongside the path
+      # deps. Drop this step once a 1.13-compatible JET is released.
+      # Skips coverage and `--check-bounds=yes` so the `performance invariants`
+      # testset's exact LLVM op counts (calibrated on 1.11+ clean codegen) get
+      # exercised; the other jobs run with CI hygiene flags that perturb counts.
+      - name: Run tests (pre path with JET fork)
+        if: ${{ inputs.version == 'pre' }}
+        run: |
+          julia --color=yes -e '
+            using Pkg
+            Pkg.activate(; temp=true)
+            Pkg.develop([
+                PackageSpec(path=pwd()),
+                PackageSpec(path=joinpath(pwd(), "test", "PrecompileTest")),
+            ])
+            Pkg.add(PackageSpec(url="https://github.com/PatrickHaecker/JET.jl", rev="julia-1.13-compat"))
+            Pkg.test("EmulatedBitIntegers"; julia_args=["--depwarn=yes"])'
       - uses: julia-actions/julia-runtest@v1
-        if: ${{ inputs.version != 'lts' }}
+        if: ${{ inputs.version != 'lts' && inputs.version != 'pre' }}
       - uses: julia-actions/julia-processcoverage@v1
         if: ${{ inputs.run_codecov }}
       - uses: codecov/codecov-action@v4
