@@ -57,8 +57,7 @@ for RM in (RoundingMode{:Up}, RoundingMode{:Down}, RoundingMode{:ToZero}, Roundi
 end
 
 Base.:-(x::T)   where T<:EmulatedInteger = -x[]  % T
-# `abs` on an unsigned is the identity; `% T` would add a useless `& maxvalue` the compiler can't elide. Signed `abs` lowers to the storage intrinsic + modular re-clean.
-Base.abs(x::EmulatedUnsigned) = x
+# Signed `abs` lowers to the storage intrinsic + modular re-clean. Unsigned needs no method: `EmulatedUnsigned <: Unsigned`, so `Base.abs(::Unsigned)` (the identity) already applies; adding one would only supersede it and widen invalidations.
 Base.abs(x::T) where T<:EmulatedSigned = abs(x[]) % T
 
 # Storage-level `-x[]` already produces the bit pattern of the flipped sign value (no overflow for non-`typemin` inputs and the same wraparound as 2's complement for `typemin`); the `% T` cast re-cleans the wasted bits.
@@ -120,6 +119,7 @@ end
 # `minvalue`/`maxvalue` return literals of the storage type, so `reinterpret` suffices.
 Base.typemin(::Type{T}) where T<:EmulatedInteger = reinterpret(T, minvalue(T))
 Base.typemax(::Type{T}) where T<:EmulatedInteger = reinterpret(T, maxvalue(T))
+# Anchor the multiplicative identity on `oneunit` rather than `one`. Both break the `one`/`oneunit` mutual recursion, but `oneunit` has far fewer precompiled callers in Base's numeric code, so it invalidates a much smaller backedge set.
 Base.oneunit(::Type{T}) where T<:EmulatedInteger = reinterpret(T, T |> storagetypeof |> one)
 
 # Storage has `wastedbits(T)` extra zero (unsigned) or sign-extension (signed) bits at the top; subtract them to get the logical leading-zero count.
@@ -159,7 +159,8 @@ for B in Union{Base.BitInteger, Base.IEEEFloat} |> Base.uniontypes .|> Symbol
     @eval Base.$B(x::EmulatedInteger) = x[] |> $B
 end
 
-for f in (:<, :<=, :>, :>=)
+# Only `<` and `<=` are defined; Base derives `>`/`>=` from them (`>(x, y) = y < x`). Defining `>`/`>=` here would supersede their universal `Any` fallbacks and invalidate a large amount of precompiled Base code for no behavioral gain.
+for f in (:<, :<=)
     @eval Base.$f(x::EmulatedInteger, y::EmulatedInteger) = $f(x[], y[])
 end
 
