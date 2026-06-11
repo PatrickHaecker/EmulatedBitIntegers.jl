@@ -529,11 +529,15 @@ end
 # Performance invariants
 # ============================================================================
 
-# Capture LLVM IR of `f(::types...)` and return the lines containing actual operations: drop preamble (`define`/`declare`), labels, braces, comments, blank lines, and the trailing `ret` (which is bookkeeping, not an operation — when the caller inlines `f`, only the operation lines remain).
+# Capture LLVM IR of `f(::types...)` and return the lines containing actual operations: drop preamble (`define`/`declare`), labels, braces, comments, blank lines, the trailing `ret` (bookkeeping, not an operation — when the caller inlines `f`, only the operation lines remain), and `--code-coverage` counter increments (`atomicrmw add` into a fixed pointer) so the count is the same with or without coverage instrumentation.
 function llvm_ops(f, types)
     io = IOBuffer()
     InteractiveUtils.code_llvm(io, f, types; debuginfo=:none, raw=false)
-    filter(!contains(r"^\s*($|;|define|declare|\}|\{\s*$|.+:\s*$|ret\b)"), split(io |> take! |> String, "\n"))
+    lines = split(io |> take! |> String, "\n")
+    filter(lines) do l
+        !contains(l, r"^\s*($|;|define|declare|\}|\{\s*$|.+:\s*$|ret\b)") &&
+            !contains(l, "atomicrmw add ptr inttoptr")
+    end
 end
 
 # A `call` instruction targeting an LLVM intrinsic (`@llvm.ctpop`, `@llvm.abs`, …) is a single native instruction, not a runtime dispatch. Only flag calls into Julia runtime functions (`@j_*`, `@julia_*`, `@ijl_*`, `@jl_*`).
@@ -546,7 +550,7 @@ runtime_calls(ops) = count(l -> occursin("call ", l) && !occursin("@llvm.", l), 
     # `>>>` with a runtime shift amount lowers to ~13 IR lines (mask, branch, mod), but the typical hot-path use is a constant shift; wrap it in a helper so the constant folds into the body.
     shr1(x::UInt3) = x >>> 1
 
-    # `(label, f, types, exact_ops)`. Counts are exact on Julia 1.11+ with default codegen options (calibrated on 1.11.9 and 1.13.0-rc1; both produce identical IR for these methods). Coverage instrumentation and `--check-bounds=yes` both inflate counts (CI runs with both), and 1.10's codegen differs, so the exact-count check is gated below.
+    # `(label, f, types, exact_ops)`. Counts are exact on Julia 1.11+ (calibrated on 1.11.9 and 1.13.0-rc1; both produce identical IR for these methods); 1.10's codegen differs, so the exact-count check is gated to 1.11+ below.
     cases = [
         ("UInt3 +",             Base.:+,         Tuple{UInt3, UInt3},       2),
         ("UInt3 *",             Base.:*,         Tuple{UInt3, UInt3},       2),
@@ -564,17 +568,12 @@ runtime_calls(ops) = count(l -> occursin("call ", l) && !occursin("@llvm.", l), 
         ("UInt20 +",            Base.:+,         Tuple{UInt20, UInt20},     2),
     ]
 
-    # Exact counts only hold for clean codegen: Julia 1.11+, no coverage instrumentation, and `--check-bounds` at its default (0 = default, 1 = yes, 2 = no). The `runtime_calls == 0` invariant remains the important one and runs unconditionally.
-    counts_calibrated = VERSION >= v"1.11" &&
-                        Base.JLOptions().code_coverage == 0 &&
-                        Base.JLOptions().check_bounds == 0
-
     for (label, f, types, exact_ops) in cases
         ops = llvm_ops(f, types)
         # No dispatch into runtime helpers — every operation must lower to native instructions or LLVM intrinsics. Also rules out allocations, which would surface as `@jl_gc_*` calls.
         @test runtime_calls(ops) == 0
         # Exact op count — any drift (up or down) signals a codegen change worth a look.
-        counts_calibrated && @test length(ops) == exact_ops
+        VERSION >= v"1.11" && @test length(ops) == exact_ops
     end
 end
 
