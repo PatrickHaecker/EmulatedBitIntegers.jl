@@ -30,7 +30,7 @@ jobs:
           - x64
         allow_failure: [false]
         include:
-          # Latest Julia pre-release (currently 1.13 rc): JET fork required; allowed to fail.
+          # Latest Julia pre-release. Allowed to fail.
           - version: "pre"
             os: ubuntu-latest
             arch: x64

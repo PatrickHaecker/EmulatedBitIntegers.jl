@@ -41,16 +41,16 @@ jobs:
           arch: ${{ inputs.arch }}
       - name: Use Julia cache
         uses: julia-actions/cache@v3
-      # `julia-buildpkg` instantiates the whole workspace (the main project plus
-      # `test/`), so it resolves the test-only JET dependency. On the Julia 1.13
-      # pre-release that resolve is unsatisfiable (registered JET caps below 1.13);
-      # the `pre` test step injects the fork into a temp env instead, so skip the
-      # workspace build here for `pre`.
+      # `julia-buildpkg` instantiates the package (and, via `[workspace]`, its test
+      # environment), so it resolves the test-only JET dependency. It is skipped on
+      # the version that builds in a temp env instead: `pre` (the workspace resolve
+      # would pull the test-only registered JET, which caps below 1.13; the fork is
+      # injected below).
       - uses: julia-actions/julia-buildpkg@v1
         if: ${{ inputs.version != 'pre' }}
-      # On Julia 1.10, `Pkg.test` from the activated project doesn't honor `[sources]`
-      # path entries (a 1.11+ feature). Dev the path-based test deps into a temp env
-      # and test by name. JET resolves normally from the registry.
+      # On Julia 1.10, `[sources]` is ignored (honoring it is a 1.11+ feature), so
+      # dev the path-based test deps into a temp env and test by name. JET resolves
+      # from the registry.
       - name: Run tests (lts path)
         if: ${{ inputs.version == 'lts' }}
         run: |
@@ -63,12 +63,12 @@ jobs:
             ])
             Pkg.test("EmulatedBitIntegers"; coverage=true,
                      julia_args=["--check-bounds=yes", "--depwarn=yes"])'
-      # Julia 1.13 pre-release: registered JET does not yet support 1.13, so dev
-      # the fork's `julia-1.13-compat` branch into a temp env alongside the path
-      # deps. Drop this step once a 1.13-compatible JET is released.
-      # Skips coverage and `--check-bounds=yes` so the `performance invariants`
-      # testset's exact LLVM op counts (calibrated on 1.11+ clean codegen) get
-      # exercised; the other jobs run with CI hygiene flags that perturb counts.
+      # Julia 1.13 pre-release: registered JET does not yet support 1.13, so dev the
+      # deps into a temp env and add the JET fork's `julia-1.13-compat` branch there.
+      # Drop this step once a 1.13-compatible JET is released. Runs without coverage
+      # or `--check-bounds=yes` so the `performance invariants` testset measures clean
+      # codegen: those flags perturb the exact LLVM op counts it asserts (calibrated
+      # on 1.11+).
       - name: Run tests (pre path with JET fork)
         if: ${{ inputs.version == 'pre' }}
         run: |
@@ -81,6 +81,8 @@ jobs:
             ])
             Pkg.add(PackageSpec(url="https://github.com/PatrickHaecker/JET.jl", rev="julia-1.13-compat"))
             Pkg.test("EmulatedBitIntegers"; julia_args=["--depwarn=yes"])'
+      # Standard path for the remaining versions: the package was instantiated by
+      # `julia-buildpkg` above, so run its tests directly. Gated to mirror that step.
       - uses: julia-actions/julia-runtest@v1
         if: ${{ inputs.version != 'lts' && inputs.version != 'pre' }}
       - uses: julia-actions/julia-processcoverage@v1
